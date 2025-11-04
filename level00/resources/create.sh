@@ -5,7 +5,7 @@ VM_NAME="snowcrash-rtire"
 DISK_IMAGE="${VM_NAME}.qcow2"
 DISK_SIZE="8G"
 RAM_SIZE="2048"  # 2GB in MB
-ISO_PATH="/path/to/your/linux.iso"  # Change this to your ISO path
+ISO_PATH="./SnowCrash.iso"  # Change this to your ISO path
 
 # Create disk image if it doesn't exist
 if [ ! -f "$DISK_IMAGE" ]; then
