@@ -1,0 +1,55 @@
+name: AI docs update PR (Gemini)
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: ai-docs-pr
+  cancel-in-progress: true
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build prompt from last commit diff
+        id: prompt
+        shell: bash
+        run: |
+          echo "prompt<<'EOF'" >> "$GITHUB_OUTPUT"
+          echo "Update documentation under ./docs to reflect the following code changes." >> "$GITHUB_OUTPUT"
+          echo "Rules: only modify files under ./docs. If nothing needs updating, make no changes." >> "$GITHUB_OUTPUT"
+          echo "" >> "$GITHUB_OUTPUT"
+          git show --unified=0 --no-color >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Run Gemini to update docs
+        uses: google-github-actions/run-gemini-cli@v0.1.14
+        with:
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          prompt: ${{ steps.prompt.outputs.prompt }}
+
+      - name: Guardrail - fail if non-doc files changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHANGED="$(git diff --name-only)"
+          echo "$CHANGED"
+          if echo "$CHANGED" | grep -vE '^(docs/|$)'; then
+            echo "Non-doc files were modified; refusing to proceed."
+            exit 1
+          fi
+
+      - name: Create PR with doc changes
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: ai/docs-sync
+          title: "docs: sync with latest code changes (Gemini)"
+          commit-message: "docs: sync with latest code changes (Gemini)"
+          body: "Automated documentation update via Gemini."
+          labels: automated,documentation
