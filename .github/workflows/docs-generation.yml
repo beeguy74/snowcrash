@@ -17,25 +17,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build prompt from last commit diff
-        id: prompt
+
+      - name: Write diff to file
         shell: bash
         run: |
-          delimiter="$(openssl rand -hex 8)"
-          {
-            echo "prompt<<$delimiter"
-            echo "Update documentation under ./docs to reflect the following code changes."
-            echo "Rules: only modify files under ./docs. If nothing needs updating, make no changes."
-            echo ""
-            git show --unified=0 --no-color
-            echo "$delimiter"
-          } >> "$GITHUB_OUTPUT"
+          git show --unified=0 --no-color > changes.diff
 
       - name: Run Gemini to update docs
         uses: google-github-actions/run-gemini-cli@v0.1.14
         with:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
-          prompt: ${{ steps.prompt.outputs.prompt }}
+          prompt: |
+            Update documentation under ./docs to reflect the changes in changes.diff.
+            Rules:
+            - Only modify files under ./docs
+            - If nothing needs updating, make no changes
+            Now read changes.diff and apply the required edits.
+
 
       - name: Guardrail - fail if non-doc files changed
         shell: bash
