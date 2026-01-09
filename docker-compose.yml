@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  snowcrash-vm:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: snowcrash-vm
+    hostname: snowcrash-vm
+    
+    # Mount the VM disk and ISO
+    volumes:
+      # Volume for persistent VM disk image
+      - vm-data:/vm
+      # Mount the ISO file (adjust path if necessary)
+      # - /path/to/SnowCrash.iso:/vm/SnowCrash.iso:ro
+    
+    # Port forwarding: host:container
+    ports:
+      - "5555:5555"
+    
+    # Privileged mode required for KVM access
+    privileged: true
+    
+    # Allow access to KVM device
+    devices:
+      - /dev/kvm:/dev/kvm
+    
+    # Resource limits (adjust as needed)
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2048M
+        reservations:
+          memory: 2048M
+    
+    # Keep container running
+    stdin_open: true
+    tty: true
+    
+    restart_policy:
+      condition: on-failure
+      delay: 5s
+      max_attempts: 5
+
+volumes:
+  vm-data:
+    driver: local
