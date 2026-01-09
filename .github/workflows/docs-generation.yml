@@ -45,6 +45,23 @@ jobs:
             echo "Non-doc files were modified; refusing to proceed."
             exit 1
           fi
+      
+      - name: Guardrail - fail if docs unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # includes modified + added + untracked inside docs/
+          DOCS_CHANGES="$(git status --porcelain docs/ || true)"
+
+          if [[ -z "${DOCS_CHANGES}" ]]; then
+            echo "::error title=No docs changes::Gemini produced no changes under docs/. Nothing to open a PR for. Either the code change did not require docs updates, or the prompt/guardrails were too strict."
+            exit 1
+          fi
+
+          echo "Docs changes detected:"
+          echo "${DOCS_CHANGES}"
+
 
       - name: Create PR with doc changes
         uses: peter-evans/create-pull-request@v7
