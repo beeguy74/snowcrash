@@ -21,12 +21,15 @@ jobs:
         id: prompt
         shell: bash
         run: |
-          echo "prompt<<'EOF'" >> "$GITHUB_OUTPUT"
-          echo "Update documentation under ./docs to reflect the following code changes." >> "$GITHUB_OUTPUT"
-          echo "Rules: only modify files under ./docs. If nothing needs updating, make no changes." >> "$GITHUB_OUTPUT"
-          echo "" >> "$GITHUB_OUTPUT"
-          git show --unified=0 --no-color >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
+          delimiter="$(openssl rand -hex 8)"
+          {
+            echo "prompt<<$delimiter"
+            echo "Update documentation under ./docs to reflect the following code changes."
+            echo "Rules: only modify files under ./docs. If nothing needs updating, make no changes."
+            echo ""
+            git show --unified=0 --no-color
+            echo "$delimiter"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Run Gemini to update docs
         uses: google-github-actions/run-gemini-cli@v0.1.14
