@@ -1,7 +1,13 @@
 name: AI docs update PR (Gemini)
+
 on:
   push:
     branches: [main]
+    # Avoid infinite loops / noise: don't re-run just because docs or workflows changed
+    paths-ignore:
+      - "docs/**"
+      - ".github/workflows/**"
+  workflow_dispatch: {}
 
 permissions:
   contents: write
@@ -14,60 +20,78 @@ concurrency:
 jobs:
   docs:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-
-      - name: Write diff to file
+      - name: Write change diff to file
+      # Uses the push event range when possible; falls back to HEAD if needed.
         shell: bash
         run: |
-          git show --unified=0 --no-color > changes.diff
+          set -euo pipefail
+          BEFORE="${{ github.event.before }}"
+          AFTER="${{ github.sha }}"
+
+          if [[ -n "${BEFORE}" && "${BEFORE}" != "0000000000000000000000000000000000000000" ]]; then
+            git diff --no-color --unified=0 "${BEFORE}" "${AFTER}" > changes.diff || true
+          else
+            git show --no-color --unified=0 > changes.diff || true
+          fi
 
       - name: Run Gemini to update docs
         uses: google-github-actions/run-gemini-cli@v0.1.14
         with:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
           prompt: |
-            Update documentation under ./docs to reflect the changes in changes.diff.
+            Update documentation under ./docs to reflect the changes described in changes.diff.
+
             Rules:
             - Only modify files under ./docs
-            - If nothing needs updating, make no changes
-            Now read changes.diff and apply the required edits.
+            - Do not modify code
+            - If no documentation updates are needed, make no changes
 
+            Please read changes.diff from the repository workspace and apply necessary edits.
+
+      # Keep the working tree clean so we don't accidentally commit runner outputs.
+      - name: Cleanup non-doc outputs
+        if: always()
+        shell: bash
+        run: |
+          rm -f changes.diff || true
+          rm -rf gemini-artifacts .gemini || true
 
       - name: Guardrail - fail if non-doc files changed
         shell: bash
         run: |
           set -euo pipefail
-          CHANGED="$(git diff --name-only)"
-          echo "$CHANGED"
-          if echo "$CHANGED" | grep -vE '^(docs/|$)'; then
-            echo "Non-doc files were modified; refusing to proceed."
+          NON_DOC="$(git status --porcelain | grep -vE '^(.. )?docs/' || true)"
+          if [[ -n "${NON_DOC}" ]]; then
+            echo "::error title=Guardrail tripped::Non-doc files were changed. Only docs/** is allowed."
+            echo "${NON_DOC}"
             exit 1
           fi
-      
+
       - name: Guardrail - fail if docs unchanged
         shell: bash
         run: |
           set -euo pipefail
-
-          # includes modified + added + untracked inside docs/
-          DOCS_CHANGES="$(git status --porcelain docs/ || true)"
-
-          if [[ -z "${DOCS_CHANGES}" ]]; then
-            echo "::error title=No docs changes::Gemini produced no changes under docs/. Nothing to open a PR for. Either the code change did not require docs updates, or the prompt/guardrails were too strict."
+          DOCS="$(git status --porcelain docs/ || true)"
+          if [[ -z "${DOCS}" ]]; then
+            echo "::error title=No docs changes::No files were created/modified under docs/. Nothing to open a PR for."
             exit 1
           fi
-
           echo "Docs changes detected:"
-          echo "${DOCS_CHANGES}"
+          echo "${DOCS}"
 
-
-      - name: Create PR with doc changes
+      - name: Create PR with doc changes only
         uses: peter-evans/create-pull-request@v7
         with:
           branch: ai/docs-sync
           title: "docs: sync with latest code changes (Gemini)"
           commit-message: "docs: sync with latest code changes (Gemini)"
-          body: "Automated documentation update via Gemini."
+          body: "Automated documentation update."
           labels: automated,documentation
+          add-paths: |
+            docs/**
