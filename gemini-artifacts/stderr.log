@@ -1,0 +1,2 @@
+YOLO mode is enabled. All tool calls will be automatically approved.
+The --prompt (-p) flag has been deprecated and will be removed in a future version. Please use a positional argument for your prompt. See gemini --help for more information.

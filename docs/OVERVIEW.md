@@ -54,6 +54,13 @@ snowcrash/
         └── getflag09.md
 ```
 
+## CI/CD
+
+This project uses GitHub Actions to automate documentation updates and publishing.
+
+-   `.github/workflows/docs-generation.yml`: This workflow automatically updates the documentation in the `docs` directory whenever changes are pushed to the `main` branch. It uses Gemini to generate the documentation based on the changes in the code.
+-   `.github/workflows/publish-wiki.yml`: This workflow automatically publishes the content of the `docs` directory to the project's GitHub wiki. This happens on every push to the `main` branch that involves changes in the `docs` directory.
+
 ## Level Breakdown
 
 ### Level 00: File Discovery
