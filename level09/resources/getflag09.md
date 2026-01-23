@@ -1,34 +1,26 @@
 provided binary reads its first argument, add to each char its index and prints res.
 we decided to substract index from each char in token file:
 ```
-elements = ['f', '4', 'k', 'm', 'm', '6', 'p', '|', '=', '130', '127', 'p', '130', 'n', '131', '130', 'D', 'B', '131', 'D', 'u', '{', '127', '140', '137']
+#include <stdio.h>
 
-result_chars = []
-print("Index | Element | Value | Value-Index | ASCII Char")
-print("-" * 55)
+int main() {
+    int c;
+    int index = 0;
 
-for index, element in enumerate(elements):
-    # Check if element is a multi-digit number
-    if element.isdigit():
-        value = int(element)
-    else:
-        # Single character - get ASCII value
-        value = ord(element)
+    // getchar reads one byte at a time from stdin
+    while ((c = getchar()) != EOF) {
+        // Subtract index from the character value
+        // putchar casts the result to unsigned char (handling underflow automatically)
+        putchar(c - index);
+        
+        index++;
+    }
     
-    # Subtract index from value
-    new_value = value - index
+    // Print a newline at the very end
+    putchar('\n');
     
-    # Convert to ASCII character
-    result_char = chr(new_value)
-    result_chars.append(result_char)
-    
-    print(f"{index:5d} | {element:7s} | {value:5d} | {new_value:11d} | {result_char}")
-
-print("\n" + "="*55)
-print("Decoded message:")
-decoded = ''.join(result_chars)
-print(decoded)
-print("\n" + "="*55)
+    return 0;
+}
 
 ```
 

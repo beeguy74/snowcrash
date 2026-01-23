@@ -1,4 +1,4 @@
-There is mail in /var/mail that points to script
+There is mail in /var/mail that show we have a cronjob.
 
 This script run all files in directory with rights of flag05 rights
 ```
